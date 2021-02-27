@@ -1,11 +1,20 @@
 package champollion;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 public class Enseignant extends Personne {
 
-    // TODO : rajouter les autres méthodes présentes dans le diagramme UML
-
+	Map<UE, ServicePrevu> servicePrevu;
+	Map<Intervention, UE> interventions;
+	
     public Enseignant(String nom, String email) {
         super(nom, email);
+        this.servicePrevu = new HashMap();
+        this.interventions = new HashMap();
     }
 
     /**
@@ -17,8 +26,12 @@ public class Enseignant extends Personne {
      *
      */
     public int heuresPrevues() {
-        // TODO: Implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+    	float heuresPrevues = 0F;
+    	Collection<ServicePrevu> allServices = servicePrevu.values();
+    	for (ServicePrevu servicePrevu : allServices) {
+    		heuresPrevues += servicePrevu.getVolumeCM() * 1.5F + servicePrevu.getVolumeTD() + servicePrevu.getVolumeTP() * 0.75F;
+		}
+        return (int) heuresPrevues;
     }
 
     /**
@@ -31,8 +44,8 @@ public class Enseignant extends Personne {
      *
      */
     public int heuresPrevuesPourUE(UE ue) {
-        // TODO: Implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+        ServicePrevu service = this.servicePrevu.get(ue);
+        return (int) (service.getVolumeCM() * 1.5F + service.getVolumeTD() + service.getVolumeTP() * 0.75F);
     }
 
     /**
@@ -44,8 +57,46 @@ public class Enseignant extends Personne {
      * @param volumeTP le volume d'heures de TP
      */
     public void ajouteEnseignement(UE ue, int volumeCM, int volumeTD, int volumeTP) {
-        // TODO: Implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+    	if(this.servicePrevu.containsKey(ue)) {
+    		ServicePrevu thisService = this.servicePrevu.get(ue);
+    		thisService.setVolumeCM(volumeCM + thisService.getVolumeCM());
+    		thisService.setVolumeTD(volumeTD + thisService.getVolumeTD());
+    		thisService.setVolumeTP(volumeTP + thisService.getVolumeTP());
+    	} else this.servicePrevu.put(ue, new ServicePrevu(volumeTD, volumeTP, volumeCM));
     }
 
+    /**
+     * Détermine si un enseignant est en sous service, 
+     * le service normal d'un enseignant étant de 192h
+     * @return VRAI si l'enseignant est en sous service, FAUX sinon
+     */
+    public boolean enSousService() {
+    	return this.heuresPrevues() < 192;
+    }
+    
+    /**
+     * Ajoute une intervention pour l'enseignant concernant une UE
+     * @param ue l'UE concernée
+     * @param intervention l'intervention de l'enseignant pour l'UE
+     */
+    public void ajouteIntervention(UE ue, Intervention intervention) {
+    	this.interventions.put(intervention, ue);
+    }
+    
+    /**
+     * Indique le nombre d'heures du type donné à planifier pour l'enseignant dans l'UE donnée
+     * @param ue l'UE concernée
+     * @param type le type d'intervention
+     * @return le nombre d'heures restantes à planifier pour l'UE et le type donné
+     */
+    public int resteAPlanifier(UE ue, TypeIntervention type) {
+    	float heuresEffectuees = 0F;
+    	for (Intervention intervention : this.interventions.keySet()) {
+			if (this.interventions.get(intervention).equals(ue) && intervention.getType().equals(type)) {
+				heuresEffectuees += intervention.getDuree();
+			}
+		}
+    	return (int) (this.heuresPrevuesPourUE(ue) - heuresEffectuees);
+    }
+    
 }
